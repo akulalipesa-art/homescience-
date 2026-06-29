@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Science KE</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#006400">
+    <style>
+        @import url('https://googleapis.com');
+        body { font-family: 'Roboto', Arial, sans-serif; margin:0; background:#f0f4f0; color:#333; }
+        header { background:#006400; color:white; padding:1rem; text-align:center; position:sticky; top:0; z-index:10; }
+        nav { display:flex; background:#228B22; overflow-x:auto; padding:0.5rem; gap:5px; }
+        nav button { flex:1; min-width:80px; padding:12px 8px; background:white; border:none; border-radius:6px; font-weight:500; white-space:nowrap; cursor:pointer; }
+        nav button.active-nav { background:#006400; color:white; }
+        .tab { display:none; padding:1rem; }
+        .tab.active { display:block; }
+        .card { background:white; border-radius:12px; padding:1rem; margin:1rem 0; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+        button.action-btn { background:#006400; color:white; border:none; padding:14px; margin:8px 0; width:100%; border-radius:8px; font-size:16px; cursor:pointer; }
+        ul { list-style:none; padding:0; }
+        li { padding:12px; background:#e8f5e9; margin:8px 0; border-radius:8px; }
+        .quiz-option { background:#f5f5f5; border:2px solid #e0e0e0; padding:12px; margin:8px 0; border-radius:8px; cursor:pointer; }
+        .quiz-option.correct { background:#c8e6c9; border-color:#4caf50; font-weight:bold; }
+        .quiz-option.wrong { background:#ffcdd2; border-color:#f44336; }
+        .score-row { display:flex; justify-content:space-between; border-bottom:1px solid #ddd; padding:8px 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Home Science KE</h1>
+    </header>
+
+    <nav>
+        <button onclick="switchTab('notes')" id="btn-notes" class="active-nav">Notes</button>
+        <button onclick="switchTab('quiz')" id="btn-quiz">Quiz</button>
+        <button onclick="switchTab('scores')" id="btn-scores">High Scores</button>
+    </nav>
+
+    <!-- Notes Section -->
+    <div id="notes" class="tab active">
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2>Form 1: Introduction to Home Science</h2>
+                <button onclick="toggleSpeech()" id="speak-btn" style="width: auto; padding: 8px 16px; margin: 0; font-size: 14px; background: #228B22; color:white; border:none; border-radius:6px; cursor:pointer;">🔊 Read Aloud</button>
+            </div>
+            <div id="notes-content">
+                <p>Home Science is an applied science that aims at improving the quality of life at home and within the community.</p>
+                <ul>
+                    <li><strong>Importance:</strong> Teaches dynamic lifecycle skills, health management, and consumer education.</li>
+                    <li><strong>Personal Hygiene:</strong> Regular grooming, oral hygiene, and wearing clean items.</li>
+                    <li><strong>Cleaning Equipment:</strong> Choosing proper brooms, brushes, and basins for surface care.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quiz Section -->
+    <div id="quiz" class="tab">
+        <div class="card">
+            <h2 id="quiz-question">Loading question...</h2>
+            <div id="quiz-options"></div>
+            <button id="next-btn" class="action-btn" onclick="nextQuestion()" style="display:none;">Next Question</button>
+            <p id="score-board" style="font-weight:bold; margin-top:15px;"></p>
+        </div>
+    </div>
+
+    <!-- Scores Section -->
+    <div id="scores" class="tab">
+        <div class="card">
+            <h2>Saved Attempt Records</h2>
+            <div id="scores-container">No history found yet. Clear a quiz session to see data here.</div>
+            <button class="action-btn" onclick="clearScores()" style="background:#b71c1c; margin-top:15px;">Clear History</button>
+        </div>
+    </div>
+
+    <script>
+        // Tab Navigation Logic
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active-nav'));
+            
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active-nav');
+
+            if(tabId === 'scores') {
+                renderScores();
+            }
+        }
+
+        // Question Pool
+        const quizData = [
+            { question: "Which of the following is an example of macro-nutrients?", options: ["Vitamins", "Carbohydrates", "Iron", "Calcium"], correct: 1 },
+            { question: "What is the primary reason for laundering clothes?", options: ["To make them smell nice", "To remove dirt and restore freshness", "To change their shape", "To make them look expensive"], correct: 1 },
+            { question: "Which vitamin helps directly in blood clotting?", options: ["Vitamin A", "Vitamin C", "Vitamin K", "Vitamin D"], correct: 2 },
+            { question: "What type of brush is best suited for dusting rough walls?", options: ["Soft sweeping broom", "Cobweb brush / Long-handled broom", "Hard scrubbing brush", "Shoe brush"], correct: 1 }
+        ];
+
+        let currentQuestionIdx = 0;
+        let score = 0;
+
+        function loadQuestion() {
+            if (currentQuestionIdx >= quizData.length) {
+                document.getElementById('quiz-question').innerText = "Quiz Completed!";
+                document.getElementById('quiz-options').innerHTML = "";
+                document.getElementById('next-btn').style.display = 'none';
+                document.getElementById('score-board').innerText = `Your Final Score: ${score} / ${quizData.length}`;
+                saveFinalScore(score, quizData.length);
+                return;
+            }
+
+            const current = quizData[currentQuestionIdx];
+            document.getElementById('quiz-question').innerText = current.question;
+            document.getElementById('next-btn').style.display = 'none';
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = "";
+
+            current.options.forEach((option, idx) => {
+                const div = document.createElement('div');
+                div.className = "quiz-option";
+                div.innerText = option;
+                div.onclick = () => selectOption(div, idx, current.correct);
+                optionsContainer.appendChild(div);
+            });
+        }
+
+        function selectOption(element, selectedIdx, correctIdx) {
+            const options = document.querySelectorAll('.quiz-option');
+            options.forEach(opt => opt.onclick = null);
+
+            if (selectedIdx === correctIdx) {
+                element.classList.add('correct');
+                score++;
+            } else {
+                element.classList.add('wrong');
+                options[correctIdx].classList.add('correct');
+            }
+
+            document.getElementById('score-board').innerText = `Score: ${score}`;
+            document.getElementById('next-btn').style.display = 'block';
+        }
+
+        function nextQuestion() {
+            currentQuestionIdx++;
+            loadQuestion();
+        }
+
+        // Local Storage Operations
+        function saveFinalScore(finalScore, total) {
+            let history = JSON.parse(localStorage.getItem('hs_scores')) || [];
+            const timestamp = new Date().toLocaleString();
+            history.push({ score: finalScore, max: total, date: timestamp });
+            localStorage.setItem('hs_scores', JSON.stringify(history));
+        }
+
+        function renderScores() {
+            const container = document.getElementById('scores-container');
+            let history = JSON.parse(localStorage.getItem('hs_scores')) || [];
+            if(history.length === 0) {
+                container.innerHTML = "No history found yet. Clear a quiz session to see data here.";
+                return;
+            }
+            container.innerHTML = history.reverse().map(item => `
+                <div class="score-row">
+                    <span>${item.date}</span>
+                    <strong>${item.score} / ${item.max}</strong>
+                </div>
+            `).join('');
+        }
+
+        // Text-to-Speech System
+        let speechSynth = window.speechSynthesis;
+        let speechUtterance = null;
+        let isSpeaking = false;
+
+        function toggleSpeech() {
+            const btn = document.getElementById('speak-btn');
+            
+            if (isSpeaking) {
+                speechSynth.cancel();
+                btn.innerText = "🔊 Read Aloud";
+                btn.style.background = "#228B22";
+                isSpeaking = false;
+                return;
+            }
+
+            const textToRead = document.getElementById('notes-content').innerText;
+            speechUtterance = new SpeechSynthesisUtterance(textToRead);
+            
+            const voices = speechSynth.getVoices();
+            const selectedVoice = voices.find(v => v.lang.includes('en')) || voices[0];
+            if (selectedVoice) speechUtterance.voice = selectedVoice;
+
+            speechUtterance.onend = () => {
+                btn.innerText = "🔊 Read Aloud";
+                btn.style.background = "#228B22";
+                isSpeaking = false;
+            };
+
+            btn.innerText = "🛑 Stop Reading";
+            btn.style.background = "#b71c1c";
+            isSpeaking = true;
+            speechSynth.speak(speechUtterance);
+        }
+
+        if (speechSynth.onvoiceschanged !== undefined) {
