@@ -1,0 +1,14 @@
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h2>Form 1: Introduction to Home Science</h2>
+        <button onclick="toggleSpeech()" id="speak-btn" style="width: auto; padding: 8px 16px; margin: 0; font-size: 14px; background: #228B22;">🔊 Read Aloud</button>
+    </div>
+    <div id="notes-content">
+        <p>Home Science is an applied science that aims at improving the quality of life at home and within the community.</p>
+        <ul>
+            <li><strong>Importance:</strong> Teaches dynamic lifecycle skills, health management, and consumer education.</li>
+            <li><strong>Personal Hygiene:</strong> Regular grooming, oral hygiene, and wearing clean items.</li>
+            <li><strong>Cleaning Equipment:</strong> Choosing proper brooms, brushes, and basins for surface care.</li>
+        </ul>
+    </div>
+</div>
